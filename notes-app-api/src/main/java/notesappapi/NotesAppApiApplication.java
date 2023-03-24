@@ -1,8 +1,9 @@
 package notesappapi;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
+import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class NotesAppApiApplication {
@@ -12,5 +13,8 @@ public class NotesAppApiApplication {
 
 	}
 
-
+	@Bean
+	public ModelMapper modelMapper() {
+		return new ModelMapper();
+	}
 }
