@@ -1,0 +1,16 @@
+services:
+  db:
+    image: mysql:latest
+    restart: always
+    environment:
+      - MYSQL_DATABASE=db
+      - MYSQL_ROOT_PASSWORD=${PW}
+    volumes:
+      - db:/var/lib/mysql
+    ports:
+      - '3306:3306'
+
+volumes:
+  db:
+    driver: local
+    
