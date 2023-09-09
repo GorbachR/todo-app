@@ -81,19 +81,18 @@ export default function NotesList() {
           />
         </li>
       ))}
-      {data?.length === 0 ? null : (
-        <li
-          className="flex justify-between gap-5 p-5 [&_span]:text-xs 
+
+      <li
+        className="flex justify-between gap-5 p-5 [&_span]:text-xs 
           [&_span]:text-todo-text-crossout">
-          <span>{data?.length + " items left"}</span>
-          <div className="flex justify-between gap-4 font-bold">
-            <span>All</span>
-            <span>Active</span>
-            <span>Completed</span>
-          </div>
-          <span>Clear completed</span>
-        </li>
-      )}
+        <span>{data ? data.length : 0 + " items left"}</span>
+        <div className="flex justify-between gap-4 font-bold">
+          <span>All</span>
+          <span>Active</span>
+          <span>Completed</span>
+        </div>
+        <span>Clear completed</span>
+      </li>
     </ul>
   );
 }
