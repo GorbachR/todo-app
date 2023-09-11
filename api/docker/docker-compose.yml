@@ -1,0 +1,11 @@
+#DEV ONLY
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.1
+    environment:
+      MYSQL_ROOT_PASSWORD: dev
+      MYSQL_DATABASE: todo-app
+    ports:
+      - "3306:3306"
