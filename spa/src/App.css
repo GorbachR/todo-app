@@ -1,0 +1,9 @@
+@media (min-width: 24rem) {
+    .bg-dark {
+        background-image: url("./assets/bg-desktop-dark.jpg");
+    }
+
+    .bg-light {
+        background-image: url("./assets/bg-desktop-light.jpg");
+    }
+}

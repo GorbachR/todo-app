@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --todo-bright-blue: hsl(220, 98%, 61%);
+  --todo-circle-hover1: hsl(192, 100%, 67%);
+  --todo-circle-hover2: hsl(280, 87%, 65%);
+}
+
+.dark-theme {
+  --todo-text: hsl(234, 39%, 85%);
+  --todo-text-hover: hsl(236, 33%, 92%);
+  --todo-text-crossout: hsl(234, 11%, 52%);
+  --todo-bg: hsl(235, 21%, 11%);
+  --todo-bg2: hsl(235, 24%, 19%);
+  --todo-outline: hsl(237, 14%, 26%);
+  --todo-noidea: hsl(233, 14%, 35%);
+}
+
+.light-theme {
+  --todo-text: hsl(235, 19%, 35%);
+  --todo-text-hover: hsl(236, 33%, 92%);
+  --todo-text-crossout: hsl(236, 9%, 61%);
+  --todo-bg: hsl(0, 0%, 98%);
+  --todo-bg2: hsl(0, 0%, 98%);
+  --todo-outline: hsl(233, 11%, 84%);
+  --todo-noidea: ;
+}
+
+html * {
+  @apply font-Josefin-Sans text-lg text-todo-text caret-todo-bright-blue;
+}
+
+h1 {
+  @apply text-3xl font-bold tracking-[.4em] text-white;
+}
