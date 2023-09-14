@@ -9,18 +9,29 @@ import (
 	"log"
 )
 
-var Db *sql.DB
-
 var (
-	dbUrl string = "root:dev@/todo-app?multiStatements=true"
+	dbUrl   string = "root:dev@/todo-app?multiStatements=true"
+	QueryDb *Queries
 )
 
-func init() {
+type Queries struct {
+	Db *sql.DB
+}
+
+func newQueries(db *sql.DB) *Queries {
+	return &Queries{
+		Db: db,
+	}
+}
+
+func InitDbConnection() {
 	var err error
-	Db, err = sql.Open("mysql", dbUrl)
+	Db, err := sql.Open("mysql", dbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	QueryDb = newQueries(Db)
 
 	driver, err := mysql.WithInstance(Db, &mysql.Config{})
 
@@ -34,5 +45,9 @@ func init() {
 		log.Fatal(err)
 	}
 
-	m.Up()
+	err = m.Up()
+
+	if err != nil && err != migrate.ErrNoChange {
+		log.Fatal(err)
+	}
 }
