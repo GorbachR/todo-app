@@ -1,4 +1,4 @@
-package dao
+package model
 
 type Todo struct {
 	Id     int    `json:"id"`

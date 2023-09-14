@@ -1,17 +1,26 @@
-package routes
+package controller
 
 import (
 	"errors"
-	"github.com/GorbachR/todo-app/api/data"
+	"github.com/GorbachR/todo-app/api/controller/validation"
+	"github.com/GorbachR/todo-app/api/data/dto"
 	"github.com/GorbachR/todo-app/api/data/model"
+	"github.com/GorbachR/todo-app/api/service"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 )
 
-func getTodos(c *gin.Context) {
+type TodoController struct {
+	TodoService service.TodoService
+}
 
-	var limitAndOffset data.LimitAndOffset
+func CreateTodoController(s service.TodoService) TodoController {
+	return TodoController{TodoService: s}
+}
+
+func (t *TodoController) GetTodos(c *gin.Context) {
+	var limitAndOffset dto.LimitAndOffset
 
 	if err := c.ShouldBindQuery(&limitAndOffset); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, &err)
@@ -22,7 +31,7 @@ func getTodos(c *gin.Context) {
 		limitAndOffset.Limit = 5
 	}
 
-	todos, err := data.QueryDb.GetTodos(limitAndOffset)
+	todos, err := t.TodoService.FindAll(limitAndOffset)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
@@ -35,17 +44,36 @@ func getTodos(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, &todos)
+
 }
 
-func postTodo(c *gin.Context) {
+func (t *TodoController) GetTodo(c *gin.Context) {
+	var todoId dto.IdRequest
+
+	if err := c.ShouldBindUri(&todoId); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	todo, err := t.TodoService.FindOne(todoId.Id)
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		return
+	}
+
+	c.JSON(http.StatusOK, &todo)
+}
+
+func (t *TodoController) PostTodo(c *gin.Context) {
 	var newTodo model.Todo
 
 	if err := c.BindJSON(&newTodo); err != nil {
 		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
-			out := make([]ErrorMsg, len(ve))
+			out := make([]validation.ErrorMsg, len(ve))
 			for i, fe := range ve {
-				out[i] = ErrorMsg{fe.Field(), getErrorMsg(fe)}
+				out[i] = validation.ErrorMsg{Field: fe.Field(), Message: validation.GetErrorMsg(fe)}
 			}
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": out})
 		} else {
@@ -54,20 +82,18 @@ func postTodo(c *gin.Context) {
 		return
 	}
 
-	res, err := data.QueryDb.CreateTodo(newTodo)
-	lastInsert, insertErr := res.LastInsertId()
+	newId, err := t.TodoService.Create(newTodo)
 
-	if err != nil || insertErr != nil {
+	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": int(lastInsert)})
+	c.JSON(http.StatusCreated, gin.H{"id": int(newId)})
 }
 
-func putTodo(c *gin.Context) {
+func (t *TodoController) PutTodo(c *gin.Context) {
 	var changedTodo model.Todo
-	var todoId TodoId
+	var todoId dto.IdRequest
 
 	if err := c.ShouldBindUri(&todoId); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -77,9 +103,9 @@ func putTodo(c *gin.Context) {
 	if err := c.BindJSON(&changedTodo); err != nil {
 		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
-			out := make([]ErrorMsg, len(ve))
+			out := make([]validation.ErrorMsg, len(ve))
 			for i, fe := range ve {
-				out[i] = ErrorMsg{fe.Field(), getErrorMsg(fe)}
+				out[i] = validation.ErrorMsg{Field: fe.Field(), Message: validation.GetErrorMsg(fe)}
 			}
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": out})
 		} else {
@@ -88,7 +114,7 @@ func putTodo(c *gin.Context) {
 		return
 	}
 
-	err := data.QueryDb.UpdateTodo(todoId.Id, changedTodo)
+	err := t.TodoService.Update(todoId.Id, changedTodo)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
@@ -96,18 +122,18 @@ func putTodo(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+
 }
 
-func deleteTodo(c *gin.Context) {
-
-	var todoId TodoId
+func (t *TodoController) DeleteTodo(c *gin.Context) {
+	var todoId dto.IdRequest
 
 	if err := c.ShouldBindUri(&todoId); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := data.QueryDb.DeleteTodo(todoId.Id)
+	err := t.TodoService.Delete(todoId.Id)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
@@ -115,23 +141,4 @@ func deleteTodo(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func getTodo(c *gin.Context) {
-
-	var todoId TodoId
-
-	if err := c.ShouldBindUri(&todoId); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	todo, err := data.QueryDb.GetTodo(todoId.Id)
-
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
-		return
-	}
-
-	c.JSON(http.StatusOK, &todo)
 }
