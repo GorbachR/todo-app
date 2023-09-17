@@ -12,14 +12,22 @@ import (
 )
 
 type TodoController struct {
-	TodoService service.TodoService
+	TodoService service.ITodoService
 }
 
-func CreateTodoController(s service.TodoService) TodoController {
+type ITodoController interface {
+	GetTodos(*gin.Context)
+	GetTodo(*gin.Context)
+	PostTodo(*gin.Context)
+	PutTodo(*gin.Context)
+	DeleteTodo(*gin.Context)
+}
+
+func CreateTodoController(s service.ITodoService) TodoController {
 	return TodoController{TodoService: s}
 }
 
-func (t *TodoController) GetTodos(c *gin.Context) {
+func (t TodoController) GetTodos(c *gin.Context) {
 	var limitAndOffset dto.LimitAndOffset
 
 	if err := c.ShouldBindQuery(&limitAndOffset); err != nil {
@@ -47,7 +55,7 @@ func (t *TodoController) GetTodos(c *gin.Context) {
 
 }
 
-func (t *TodoController) GetTodo(c *gin.Context) {
+func (t TodoController) GetTodo(c *gin.Context) {
 	var todoId dto.IdRequest
 
 	if err := c.ShouldBindUri(&todoId); err != nil {
@@ -65,7 +73,7 @@ func (t *TodoController) GetTodo(c *gin.Context) {
 	c.JSON(http.StatusOK, &todo)
 }
 
-func (t *TodoController) PostTodo(c *gin.Context) {
+func (t TodoController) PostTodo(c *gin.Context) {
 	var newTodo model.Todo
 
 	if err := c.BindJSON(&newTodo); err != nil {
@@ -91,7 +99,7 @@ func (t *TodoController) PostTodo(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": int(newId)})
 }
 
-func (t *TodoController) PutTodo(c *gin.Context) {
+func (t TodoController) PutTodo(c *gin.Context) {
 	var changedTodo model.Todo
 	var todoId dto.IdRequest
 
@@ -125,7 +133,7 @@ func (t *TodoController) PutTodo(c *gin.Context) {
 
 }
 
-func (t *TodoController) DeleteTodo(c *gin.Context) {
+func (t TodoController) DeleteTodo(c *gin.Context) {
 	var todoId dto.IdRequest
 
 	if err := c.ShouldBindUri(&todoId); err != nil {

@@ -1,7 +1,9 @@
 startDb:
-	docker compose -f ./config/docker/docker-compose.yml up -d
+	cd ./config/docker/ && \
+	docker compose up -d
 
 stopDb:
-	docker compose -f ./config/docker/docker-compose.yml down
+	cd ./config/docker/ && \
+	docker compose down
 
 .PHONY: startDb stopDb

@@ -6,6 +6,7 @@ services:
     image: mysql:8.1
     environment:
       MYSQL_ROOT_PASSWORD: dev
-      MYSQL_DATABASE: todo-app
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
