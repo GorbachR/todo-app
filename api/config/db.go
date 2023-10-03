@@ -24,6 +24,11 @@ func CreateMigrations(db *sql.DB, migrationPath string) (migrations Migrations, 
 	return
 }
 
+func (m *Migrations) ForceVersion(version int) (err error) {
+	err = m.Migrate.Force(version)
+	return
+}
+
 func (m *Migrations) MigrateUp(ignoreNoChange bool) (err error) {
 	err = m.Migrate.Up()
 	if ignoreNoChange && err == migrate.ErrNoChange {

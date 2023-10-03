@@ -2,7 +2,8 @@ package controller
 
 import (
 	"errors"
-	"github.com/GorbachR/todo-app/api/controller/validation"
+	"github.com/GorbachR/todo-app/api/controller/response"
+	"github.com/GorbachR/todo-app/api/customError"
 	"github.com/GorbachR/todo-app/api/data/dto"
 	"github.com/GorbachR/todo-app/api/data/model"
 	"github.com/GorbachR/todo-app/api/service"
@@ -21,82 +22,83 @@ type ITodoController interface {
 	PostTodo(*gin.Context)
 	PutTodo(*gin.Context)
 	DeleteTodo(*gin.Context)
+	ReorderTodo(*gin.Context)
 }
 
-func CreateTodoController(s service.ITodoService) TodoController {
-	return TodoController{TodoService: s}
+func CreateTodoController(s service.ITodoService) *TodoController {
+	return &TodoController{TodoService: s}
 }
 
 func (t TodoController) GetTodos(c *gin.Context) {
-	var limitAndOffset dto.LimitAndOffset
+	var getTodoQueryParams dto.GetTodosQueryParams
 
-	if err := c.ShouldBindQuery(&limitAndOffset); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, &err)
+	if err := c.ShouldBindQuery(&getTodoQueryParams); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructBindingFailResponse(response.BindingQuery))
 		return
 	}
 
-	if limitAndOffset.Limit == 0 {
-		limitAndOffset.Limit = 5
+	if getTodoQueryParams.Limit == 0 {
+		getTodoQueryParams.Limit = 5
 	}
 
-	todos, err := t.TodoService.FindAll(limitAndOffset)
+	todos, err := t.TodoService.FindAll(c.Request.Context(), getTodoQueryParams)
 
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.ConstructInternalServerError(""))
 		return
 	}
 
-	if len(todos) == 0 {
-		c.JSON(http.StatusOK, []model.Todo{})
-		return
-	}
-
-	c.JSON(http.StatusOK, &todos)
-
+	resp := response.ConstructSuccess(todos)
+	c.JSON(http.StatusOK, &resp)
 }
 
 func (t TodoController) GetTodo(c *gin.Context) {
 	var todoId dto.IdRequest
 
 	if err := c.ShouldBindUri(&todoId); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructUriBindingFailResponse(c.FullPath()))
 		return
 	}
 
-	todo, err := t.TodoService.FindOne(todoId.Id)
+	todo, err := t.TodoService.FindOne(c.Request.Context(), todoId.Id)
 
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		var errResNF customError.ErrResourceNotFound
+		if errors.As(err, &errResNF) {
+			c.AbortWithStatusJSON(http.StatusNotFound, response.ConstructResourceNotFound(errResNF.Resource))
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, response.ConstructInternalServerError(""))
+		}
 		return
 	}
 
-	c.JSON(http.StatusOK, &todo)
+	resp := response.ConstructSuccess(todo)
+	c.JSON(http.StatusOK, &resp)
 }
 
 func (t TodoController) PostTodo(c *gin.Context) {
 	var newTodo model.Todo
 
-	if err := c.BindJSON(&newTodo); err != nil {
-		var ve validator.ValidationErrors
-		if errors.As(err, &ve) {
-			out := make([]validation.ErrorMsg, len(ve))
-			for i, fe := range ve {
-				out[i] = validation.ErrorMsg{Field: fe.Field(), Message: validation.GetErrorMsg(fe)}
-			}
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": out})
+	if err := c.ShouldBindJSON(&newTodo); err != nil {
+		var valFail validator.ValidationErrors
+		if errors.As(err, &valFail) {
+			c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructValidationFailResponse(valFail))
 		} else {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructBindingFailResponse(response.BindingJSON))
 		}
 		return
 	}
 
-	newId, err := t.TodoService.Create(newTodo)
+	todo, err := t.TodoService.Create(c.Request.Context(), newTodo)
 
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, response.ConstructInternalServerError(""))
+		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": int(newId)})
+	//TODO add location header
+
+	c.JSON(http.StatusCreated, response.ConstructSuccess(todo))
 }
 
 func (t TodoController) PutTodo(c *gin.Context) {
@@ -104,49 +106,81 @@ func (t TodoController) PutTodo(c *gin.Context) {
 	var todoId dto.IdRequest
 
 	if err := c.ShouldBindUri(&todoId); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructUriBindingFailResponse(c.FullPath()))
 		return
 	}
 
-	if err := c.BindJSON(&changedTodo); err != nil {
-		var ve validator.ValidationErrors
-		if errors.As(err, &ve) {
-			out := make([]validation.ErrorMsg, len(ve))
-			for i, fe := range ve {
-				out[i] = validation.ErrorMsg{Field: fe.Field(), Message: validation.GetErrorMsg(fe)}
-			}
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"errors": out})
+	if err := c.ShouldBindJSON(&changedTodo); err != nil {
+		var valFail validator.ValidationErrors
+		if errors.As(err, &valFail) {
+			resp := response.ConstructValidationFailResponse(valFail)
+			c.AbortWithStatusJSON(http.StatusBadRequest, resp)
 		} else {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructBindingFailResponse(response.BindingJSON))
 		}
 		return
 	}
 
-	err := t.TodoService.Update(todoId.Id, changedTodo)
+	err := t.TodoService.Update(c.Request.Context(), todoId.Id, changedTodo)
 
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		var errResNF customError.ErrResourceNotFound
+		if errors.As(err, &errResNF) {
+			c.AbortWithStatusJSON(http.StatusNotFound, response.ConstructResourceNotFound(errResNF.Resource))
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, response.ConstructInternalServerError(""))
+		}
 		return
 	}
 
-	c.Status(http.StatusNoContent)
-
+	c.JSON(http.StatusOK, response.ConstructSuccess(nil))
 }
 
 func (t TodoController) DeleteTodo(c *gin.Context) {
 	var todoId dto.IdRequest
 
 	if err := c.ShouldBindUri(&todoId); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructUriBindingFailResponse(c.FullPath()))
 		return
 	}
 
-	err := t.TodoService.Delete(todoId.Id)
+	err := t.TodoService.Delete(c.Request.Context(), todoId.Id)
 
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		var errResNF customError.ErrResourceNotFound
+		if errors.As(err, &errResNF) {
+			c.AbortWithStatusJSON(http.StatusNotFound, response.ConstructResourceNotFound(errResNF.Resource))
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, response.ConstructInternalServerError(""))
+		}
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, response.ConstructSuccess(nil))
+}
+
+func (t TodoController) ReorderTodo(c *gin.Context) {
+	var reorderTodoParams dto.ReorderPosTodoParams
+
+	if err := c.ShouldBindJSON(&reorderTodoParams); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructBindingFailResponse(response.BindingJSON))
+		return
+	}
+
+	err := t.TodoService.ReorderInsert(c.Request.Context(), reorderTodoParams)
+
+	if err != nil {
+		var errResNF customError.ErrResourceNotFound
+		var errResU customError.ErrResourceUnchanged
+		if errors.As(err, &errResNF) {
+			c.AbortWithStatusJSON(http.StatusNotFound, response.ConstructResourceNotFound(errResNF.Resource))
+		} else if errors.As(err, &errResU) {
+			c.JSON(http.StatusNoContent, response.ConstructSuccess(nil))
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, response.ConstructInternalServerError(""))
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, response.ConstructSuccess(nil))
 }

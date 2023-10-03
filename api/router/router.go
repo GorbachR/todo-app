@@ -7,17 +7,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	GetTodosRoute    = "/todos"
+	GetTodoRoute     = "/todos/:id"
+	PostTodoRoute    = "/todos"
+	PutTodoRoute     = "/todos/:id"
+	DeleteTodoRoute  = "/todos/:id"
+	PatchReorderTodo = "/todos/reorder"
+)
+
 func SetupRouter(db *sql.DB) *gin.Engine {
 
 	r := gin.Default()
 
 	todoController := config.CreateTodoController(db)
 
-	r.GET("/todos", todoController.GetTodos)
-	r.GET("/todos/:id", todoController.GetTodo)
-	r.POST("/todos", todoController.PostTodo)
-	r.PUT("/todos/:id", todoController.PutTodo)
-	r.DELETE("/todos/:id", todoController.DeleteTodo)
+	r.GET(GetTodosRoute, todoController.GetTodos)
+	r.GET(GetTodoRoute, todoController.GetTodo)
+	r.POST(PostTodoRoute, todoController.PostTodo)
+	r.PUT(PutTodoRoute, todoController.PutTodo)
+	r.DELETE(DeleteTodoRoute, todoController.DeleteTodo)
+	r.PATCH(PatchReorderTodo, todoController.ReorderTodo)
 
 	return r
 }

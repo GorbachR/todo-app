@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"github.com/GorbachR/todo-app/api/data/dto"
 	"github.com/GorbachR/todo-app/api/data/model"
 	"github.com/GorbachR/todo-app/api/repository"
@@ -11,38 +12,44 @@ type TodoService struct {
 }
 
 type ITodoService interface {
-	FindAll(dto.LimitAndOffset) ([]model.Todo, error)
-	FindOne(int) (model.Todo, error)
-	Create(model.Todo) (int, error)
-	Update(int, model.Todo) error
-	Delete(int) error
+	FindAll(context.Context, dto.GetTodosQueryParams) ([]model.Todo, error)
+	FindOne(context.Context, int) (model.Todo, error)
+	Create(context.Context, model.Todo) (todo model.Todo, err error)
+	Update(context.Context, int, model.Todo) error
+	Delete(context.Context, int) error
+	ReorderInsert(context.Context, dto.ReorderPosTodoParams) error
 }
 
-func CreateTodoService(t repository.ITodoRepository) TodoService {
-	return TodoService{TodoRepository: t}
+func CreateTodoService(t repository.ITodoRepository) *TodoService {
+	return &TodoService{TodoRepository: t}
 }
 
-func (t TodoService) FindAll(limitAndOffset dto.LimitAndOffset) (todos []model.Todo, err error) {
-	todos, err = t.TodoRepository.FindAll(limitAndOffset)
+func (t TodoService) FindAll(ctx context.Context, getTodosQueryParams dto.GetTodosQueryParams) (todos []model.Todo, err error) {
+	todos, err = t.TodoRepository.FindAll(ctx, getTodosQueryParams)
 	return
 }
 
-func (t TodoService) FindOne(id int) (todo model.Todo, err error) {
-	todo, err = t.TodoRepository.FindOne(id)
+func (t TodoService) FindOne(ctx context.Context, id int) (todo model.Todo, err error) {
+	todo, err = t.TodoRepository.FindOne(ctx, id)
 	return
 }
 
-func (t TodoService) Create(newTodo model.Todo) (newId int, err error) {
-	newId, err = t.TodoRepository.Create(newTodo)
+func (t TodoService) Create(ctx context.Context, newTodo model.Todo) (todo model.Todo, err error) {
+	todo, err = t.TodoRepository.Create(ctx, newTodo)
 	return
 }
 
-func (t TodoService) Update(id int, updatedTodo model.Todo) (err error) {
-	err = t.TodoRepository.Update(id, updatedTodo)
+func (t TodoService) Update(ctx context.Context, id int, updatedTodo model.Todo) (err error) {
+	err = t.TodoRepository.Update(ctx, id, updatedTodo)
 	return
 }
 
-func (t TodoService) Delete(id int) (err error) {
-	err = t.TodoRepository.Delete(id)
+func (t TodoService) Delete(ctx context.Context, id int) (err error) {
+	err = t.TodoRepository.Delete(ctx, id)
+	return
+}
+
+func (t TodoService) ReorderInsert(ctx context.Context, params dto.ReorderPosTodoParams) (err error) {
+	err = t.TodoRepository.ReorderInsert(ctx, params)
 	return
 }
