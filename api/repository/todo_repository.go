@@ -164,7 +164,7 @@ func (t TodoRepository) ReorderInsert(ctx context.Context, params dto.ReorderPos
 	}
 
 	if rowsAffected64 == 0 {
-		err = customError.ErrResourceUnchanged{Resource: strconv.Itoa(params.TodoToInsertId)}
+		err = customError.ErrResourceNotFound{Resource: strconv.Itoa(params.TodoToInsertId)}
 	}
 	return
 }
