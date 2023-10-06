@@ -44,9 +44,9 @@ func (m *MockITodoService) EXPECT() *MockITodoServiceMockRecorder {
 func (m *MockITodoService) Create(arg0 context.Context, arg1 model.Todo) (model.Todo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(model.Todo)
 	ret1, _ := ret[1].(error)
-	return ret1
+	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
@@ -59,9 +59,8 @@ func (mr *MockITodoServiceMockRecorder) Create(arg0, arg1 any) *gomock.Call {
 func (m *MockITodoService) Delete(arg0 context.Context, arg1 int) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Delete indicates an expected call of Delete.
@@ -104,9 +103,8 @@ func (mr *MockITodoServiceMockRecorder) FindOne(arg0, arg1 any) *gomock.Call {
 func (m *MockITodoService) ReorderInsert(arg0 context.Context, arg1 dto.ReorderPosTodoParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReorderInsert", arg0, arg1)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // ReorderInsert indicates an expected call of ReorderInsert.
@@ -119,9 +117,8 @@ func (mr *MockITodoServiceMockRecorder) ReorderInsert(arg0, arg1 any) *gomock.Ca
 func (m *MockITodoService) Update(arg0 context.Context, arg1 int, arg2 model.Todo) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Update indicates an expected call of Update.

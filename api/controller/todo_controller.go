@@ -72,8 +72,7 @@ func (t TodoController) GetTodo(c *gin.Context) {
 		return
 	}
 
-	resp := response.ConstructSuccess(todo)
-	c.JSON(http.StatusOK, &resp)
+	c.JSON(http.StatusOK, response.ConstructSuccess(todo))
 }
 
 func (t TodoController) PostTodo(c *gin.Context) {
@@ -163,7 +162,13 @@ func (t TodoController) ReorderTodo(c *gin.Context) {
 	var reorderTodoParams dto.ReorderPosTodoParams
 
 	if err := c.ShouldBindJSON(&reorderTodoParams); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructBindingFailResponse(response.BindingJSON))
+		var valFail validator.ValidationErrors
+		if errors.As(err, &valFail) {
+			resp := response.ConstructValidationFailResponse(valFail)
+			c.AbortWithStatusJSON(http.StatusBadRequest, resp)
+		} else {
+			c.AbortWithStatusJSON(http.StatusBadRequest, response.ConstructBindingFailResponse(response.BindingJSON))
+		}
 		return
 	}
 
@@ -171,11 +176,8 @@ func (t TodoController) ReorderTodo(c *gin.Context) {
 
 	if err != nil {
 		var errResNF customError.ErrResourceNotFound
-		var errResU customError.ErrResourceUnchanged
 		if errors.As(err, &errResNF) {
 			c.AbortWithStatusJSON(http.StatusNotFound, response.ConstructResourceNotFound(errResNF.Resource))
-		} else if errors.As(err, &errResU) {
-			c.JSON(http.StatusNoContent, response.ConstructSuccess(nil))
 		} else {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.ConstructInternalServerError(""))
 		}
